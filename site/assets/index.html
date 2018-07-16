@@ -15,27 +15,65 @@ var g_data = {};
 
 $(function() {
 
-$("#tab_exercise").hide();
-$("#tab_query").hide();
+  function routeAction() {
+      var route = location.hash;
 
-$("#a_exec").click(function() {
-    $("#tab_exercise").show();
-    $("#tab_main").hide();
-    $("#tab_query").hide();
-    if (g_quiz["1s"] == undefined) exercise_load();
-})
-$("#a_main").click(function() {
-    $("#tab_exercise").hide();
-    $("#tab_main").show();
-    $("#tab_query").hide();
-})
-$("#a_query").click(function() {
-    query_load(g_data, true);
-    $('#txt_query').val('');
-    $("#tab_exercise").hide();
-    $("#tab_main").hide();
-    $("#tab_query").show();
-})
+      if (route[0] === '#') {
+        route = route.substring(1);
+      }
+
+      if (route === '') {
+          // home page
+          $("#tab_exercise").hide();
+          $("#tab_main").show();
+          $("#tab_query").hide();
+      } else if (route.indexOf('query') === 0) {
+          // query tab
+          if (route.length === 'query'.length) {
+              // main query tab
+              query_load(g_data, true);
+          } else {
+              // submitted query tab
+              var data = getObjectFromHash(route);
+              console.log(data)
+              $.get("?action=query&word=" + escape(data.query), function(data) {
+                  g_data = data;
+                  query_load(data, false);
+              });
+          }
+          $('#txt_query').val('');
+          $("#tab_exercise").hide();
+          $("#tab_main").hide();
+          $("#tab_query").show();
+      } else if (route.indexOf('exercise') === 0) {
+          // exercise tab
+          $("#tab_exercise").show();
+          $("#tab_main").hide();
+          $("#tab_query").hide();
+          if (g_quiz["1s"] == undefined) exercise_load();
+      }
+  }
+
+// $("#tab_exercise").hide();
+// $("#tab_query").hide();
+// $("#a_exec").click(function() {
+//     $("#tab_exercise").show();
+//     $("#tab_main").hide();
+//     $("#tab_query").hide();
+//     if (g_quiz["1s"] == undefined) exercise_load();
+// })
+// $("#a_main").click(function() {
+//     $("#tab_exercise").hide();
+//     $("#tab_main").show();
+//     $("#tab_query").hide();
+// })
+// $("#a_query").click(function() {
+//     query_load(g_data, true);
+//     $('#txt_query').val('');
+//     $("#tab_exercise").hide();
+//     $("#tab_main").hide();
+//     $("#tab_query").show();
+// })
 
 function exercise_load() {
     $.get("?action=quiz", function(data) {
@@ -175,12 +213,25 @@ function query_load(data, inapp_query) {
 }
 
 $("#query_form").on('submit', function() {
-    var query_txt = deaccent($('#txt_query').val());
-    $.get("?action=query&word=" + escape(query_txt), function(data) {
-        g_data = data;
-        query_load(data, false);
-    });
+    location.hash = '#query=' + encodeURIComponent(deaccent($('#txt_query').val()));
 })
+
+
+function getObjectFromHash(hash) {
+    var key;
+    return hash.split('=').reduce(function(object, currentValue, idx) {
+      if (idx % 2 === 0) {
+        key = currentValue;
+      } else {
+        object[key] = decodeURIComponent(currentValue);
+      }
+      return object;
+    }, {})
+}
+
+
+window.onhashchange = routeAction;
+routeAction();
 
 })  // end of $(function(){})
     </script>
@@ -196,13 +247,13 @@ $("#query_form").on('submit', function() {
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
         </button>
-        <a id="a_main" href="/" class="navbar-brand">Conjugarden</a>
+        <a id="a_main" href="#" class="navbar-brand">Conjugarden</a>
     </div>
 
     <div class="collapse navbar-collapse" id="navbarCollapse">
         <ul class="nav navbar-nav">
-            <li><a id="a_exec" href="?#exercise">Exercise</a></li>
-            <li><a id="a_query" href="?#query">Query</a></li>
+            <li><a id="a_exec" href="#exercise">Exercise</a></li>
+            <li><a id="a_query" href="#query">Query</a></li>
         </ul>
     </div>
 </nav>
