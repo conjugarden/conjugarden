@@ -13,86 +13,89 @@
 var g_quiz = {};
 var g_data = {};
 
+
 $(function() {
 
-  function routeAction() {
-      var route = location.hash;
-
-      if (route[0] === '#') {
-        route = route.substring(1);
+  var routes = {
+    home: function() {
+      $("#tab_main").show();
+    },
+    query: function(data) {
+      // query tab
+      if (!data.query) {
+        // main query tab
+        query_load(g_data, true);
+      } else {
+        // submitted query tab
+        $.get("?action=query&word=" + encodeURIComponent(data.query), function(response) {
+          g_data = response;
+          query_load(response, false);
+        });
       }
-
-      if (route === '') {
-          // home page
-          $("#tab_exercise").hide();
-          $("#tab_main").show();
-          $("#tab_query").hide();
-      } else if (route.indexOf('query') === 0) {
-          // query tab
-          if (route.length === 'query'.length) {
-              // main query tab
-              query_load(g_data, true);
-          } else {
-              // submitted query tab
-              var data = getObjectFromHash(route);
-              console.log(data)
-              $.get("?action=query&word=" + escape(data.query), function(data) {
-                  g_data = data;
-                  query_load(data, false);
-              });
-          }
-          $('#txt_query').val('');
-          $("#tab_exercise").hide();
-          $("#tab_main").hide();
-          $("#tab_query").show();
-      } else if (route.indexOf('exercise') === 0) {
-          // exercise tab
-          $("#tab_exercise").show();
-          $("#tab_main").hide();
-          $("#tab_query").hide();
-          if (g_quiz["1s"] == undefined) exercise_load();
+      $('#txt_query').val('');
+      $("#tab_query").show();
+    },
+    exercise: function(data) {
+      $("#tab_exercise").show();
+      if (g_quiz["1s"] == undefined) exercise_load();
+    },
+    translate: function(data) {
+      $('#translate_result').empty();
+      if (data.translate) {
+        $.get("?action=translate&text=" + encodeURIComponent(data.translate))
+        .done(function(data) {
+          $('#translate_result').html(data.out);
+        })
+        .fail(function(req) {
+          var data = JSON.parse(req.responseText)
+          $('#translate_result').html(
+            '<p class="error">' + data.error + '</p>' + data.out
+          );
+        });
       }
+      $("#tab_translate").show();
+    }
   }
 
-// $("#tab_exercise").hide();
-// $("#tab_query").hide();
-// $("#a_exec").click(function() {
-//     $("#tab_exercise").show();
-//     $("#tab_main").hide();
-//     $("#tab_query").hide();
-//     if (g_quiz["1s"] == undefined) exercise_load();
-// })
-// $("#a_main").click(function() {
-//     $("#tab_exercise").hide();
-//     $("#tab_main").show();
-//     $("#tab_query").hide();
-// })
-// $("#a_query").click(function() {
-//     query_load(g_data, true);
-//     $('#txt_query').val('');
-//     $("#tab_exercise").hide();
-//     $("#tab_main").hide();
-//     $("#tab_query").show();
-// })
+  // this loads a page based on the first part of the #hash of the url
+  function routeAction() {
+    var hash = location.hash;
+    var route = 'home';
 
-function exercise_load() {
-    $.get("?action=quiz", function(data) {
-        g_data = data;
-        $('#lab_word').text(data["word"]);
-        $('#lab_meaning').text(data["meaning"]);
+    $('.main_tab').hide();
 
-        quizes = data["conj"];
-        g_quiz = quizes[Math.floor(Math.random() * quizes.length)];
-        $('#lab_mood').text(g_quiz["mood"]);
-        $('#lab_tense').text(g_quiz["tense"]);
-        $('#txt_1s').attr('readonly', g_quiz["1s"] == "");
-        $('#txt_2s').attr('readonly', g_quiz["2s"] == "");
-        $('#txt_3s').attr('readonly', g_quiz["3s"] == "");
-        $('#txt_1p').attr('readonly', g_quiz["1p"] == "");
-        $('#txt_2p').attr('readonly', g_quiz["2p"] == "");
-        $('#txt_3p').attr('readonly', g_quiz["3p"] == "");
-    });
-}
+    if (hash[0] === '#') {
+      hash = hash.substring(1);
+    }
+
+    for (var route in routes) {
+      if (hash.indexOf(route) === 0) {
+        routes[route](getObjectFromHash(hash));
+        return;
+      }
+    }
+    // default to home page
+    routes.home();
+  }
+
+  function exercise_load() {
+      $.get("?action=quiz", function(data) {
+          g_data = data;
+          $('#lab_word').text(data["word"]);
+          $('#lab_meaning').text(data["meaning"]);
+
+          quizes = data["conj"];
+          g_quiz = quizes[Math.floor(Math.random() * quizes.length)];
+          $('#lab_mood').text(g_quiz["mood"]);
+          $('#lab_tense').text(g_quiz["tense"]);
+          $('#txt_1s').attr('readonly', g_quiz["1s"] == "");
+          $('#txt_2s').attr('readonly', g_quiz["2s"] == "");
+          $('#txt_3s').attr('readonly', g_quiz["3s"] == "");
+          $('#txt_1p').attr('readonly', g_quiz["1p"] == "");
+          $('#txt_2p').attr('readonly', g_quiz["2p"] == "");
+          $('#txt_3p').attr('readonly', g_quiz["3p"] == "");
+      });
+  }
 
 function deaccent(str) {
     return str
@@ -216,6 +219,10 @@ $("#query_form").on('submit', function() {
     location.hash = '#query=' + encodeURIComponent(deaccent($('#txt_query').val()));
 })
 
+$("#translate_form").on('submit', function() {
+    location.hash = '#translate=' + encodeURIComponent($('#txt_translate').val());
+})
+
 
 function getObjectFromHash(hash) {
     var key;
@@ -252,13 +259,14 @@ routeAction();
 
     <div class="collapse navbar-collapse" id="navbarCollapse">
         <ul class="nav navbar-nav">
-            <li><a id="a_exec" href="#exercise">Exercise</a></li>
-            <li><a id="a_query" href="#query">Query</a></li>
+            <li><a href="#exercise">Exercise</a></li>
+            <li><a href="#query">Query</a></li>
+            <li><a href="#translate">Translate</a></li>
         </ul>
     </div>
 </nav>
 
-<div id="tab_main" class="container">
+<div id="tab_main" class="container main_tab">
     <div class="jumbotron">
         <h1>Conjugarden</h1>
         <br />
@@ -269,7 +277,7 @@ routeAction();
   <a href="https://github.com/conjugarden/conjugarden" target="_blank">Contribute</a> | <a href="mailto:info@conjugarden.com">Contact</a>
 </div>
 
-<div id="tab_query" class="container">
+<div id="tab_query" class="container main_tab">
     <div class="container">
         <div class="panel panel-default">
             <div class="panel-heading">
@@ -277,7 +285,7 @@ routeAction();
                     <div class="input-group">
                         <input type="text" class="form-control" id="txt_query">
                         <span class="input-group-btn">
-                            <button class="btn btn-success" type="button" id="btn_query">
+                            <button class="btn btn-success" type="submit">
                                 <span class="glyphicon glyphicon-search"/>
                             </button>
                         </span>
@@ -293,7 +301,28 @@ routeAction();
     </div>
 </div>
 
-<div id="tab_exercise" class="container">
+<div id="tab_translate" class="container main_tab">
+    <div class="container">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <form class="" id="translate_form">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="txt_translate">
+                        <span class="input-group-btn">
+                            <button class="btn btn-success" type="submit">
+                                <span class="glyphicon glyphicon-search"/>
+                            </button>
+                        </span>
+                    </div>
+                </form>
+            </div>
+            <div id="translate_result" class="panel-body">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="tab_exercise" class="container main_tab">
     <div class="panel panel-default">
         <div class="panel-heading">
             <span id="lab_word">amar</span>
