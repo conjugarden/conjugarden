@@ -3,22 +3,16 @@ var url = require('url');
 var fs = require('fs');
 var child_process = require('child_process');
 
-var TRANSLATE_CMD = '/usr/local/bin/translate.sh';
+var config = require('../config.js');
+var database = require('./database.js');
 
 
-var g_data;
-fs.readFile('data.json', 'utf8', function(err, str) {
-	if (err) g_data = null;
-	g_data = JSON.parse(str);
-});
-
-function show_word(key, resp)
-{
-	var info = g_data[key];
-	resp.writeHead(200, { 'Content-Type': 'application/json' });
+function write_response(status, info, resp) {
+	resp.writeHead(status, { 'Content-Type': 'application/json' });
 	if (info == undefined) {
 		resp.write('{}');
 	} else {
+		//console.log(info)
 		resp.write(JSON.stringify(info));
 	}
 	resp.end();
@@ -26,7 +20,7 @@ function show_word(key, resp)
 
 
 function translate_text(text, resp) {
-	var prc = child_process.spawn(TRANSLATE_CMD, [text]);
+	var prc = child_process.spawn(config.translate_command, [text]);
 	prc.stdout.setEncoding('utf8');
 
 	var out = '';
@@ -48,25 +42,53 @@ function translate_text(text, resp) {
 			console.log(error);
 		}
 		result.out = out;
-		resp.writeHead(status, { 'Content-Type': 'application/json' });
-		resp.write(JSON.stringify(result));
-		resp.end();
+		write_response(status, result, resp);
 	});
 }
 
+
+function query_route(query, resp) {
+	var result = {};
+
+	database.fuzzy_find_word(query.word, function(err, word) {
+		if (err) {
+			result.error = err.message;
+			return write_response(500, result, resp);
+		}
+
+		if (!word) {
+			// TODO: call import script here and try again
+			return write_response(200, result, resp);
+		}
+
+		database.fetch_all(word, function(result) {
+			return write_response(200, result, resp);
+		})
+	})
+}
+
+
+function quiz_route(query, resp) {
+	database.query('select * from infinitive order by rand() limit 1', function(err, res) {
+		if (err) {
+			status = 500;
+			return write_response(500, {error: err.message}, resp);
+		}
+
+		database.fetch_all(res[0], function(result) {
+			return write_response(200, result, resp);
+		})
+	})
+}
+
 var server = http.createServer(function(req, resp) {
-	req_url = url.parse(req.url, true);
+	var req_url = url.parse(req.url, true);
 
 	if (req_url.query['action'] == 'quiz') {
-
-		var keys = Object.keys(g_data);
-		var key = keys[Math.floor(Math.random() * keys.length)];
-		show_word(key, resp);
+		quiz_route(req_url.query, resp)
 
 	} else if (req_url.query['action'] == 'query') {
-
-		var key = req_url.query['word'];
-		show_word(key, resp);
+		query_route(req_url.query, resp)
 
 	} else if (req_url.query['action'] == 'translate') {
 			var text = req_url.query['text'];
@@ -74,18 +96,15 @@ var server = http.createServer(function(req, resp) {
 
 	} else if (req_url.pathname == '/favicon.ico') {
 		resp.setHeader('Content-Type', 'image/x-icon');
-		fs.createReadStream('assets/favicon.ico').pipe(resp);
-		return;
-		resp.end();
+		fs.createReadStream(__dirname + '/assets/favicon.ico').pipe(resp);
+
 	} else if (req_url.pathname == '/spain-flag-with-bull.png') {
 		resp.setHeader('Content-Type', 'image/png');
-		fs.createReadStream('assets/spain-flag-with-bull.png').pipe(resp);
-		return;
-		resp.end();
-	} else {
+		fs.createReadStream(__dirname + '/assets/spain-flag-with-bull.png').pipe(resp);
 
+	} else {
 		resp.writeHead(200, { 'Content-Type': 'text/html' });
-		fs.createReadStream('./assets/index.html').pipe(resp);
-	};
+		fs.createReadStream(__dirname + '/assets/index.html').pipe(resp);
+	}
 });
-server.listen(8080);
+server.listen(config.port);
