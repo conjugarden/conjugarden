@@ -4,10 +4,21 @@
     <title>Conjugarden</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css">
     <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<style>
+  .hide-condicional .condicional, .hide-condicional-perfecto .condicional-perfecto,
+  .hide-futuro .futuro, .hide-futuro-perfecto .futuro-perfecto,
+  .hide-imperativo-afirmativo .imperativo-afirmativo, .hide-imperativo-negativo .imperativo-negativo,
+  .hide-imperfecto .imperfecto, .hide-indicativo .indicativo, .hide-pluscuamperfecto .pluscuamperfecto,
+  .hide-presente .presente, .hide-presente-perfecto .presente-perfecto, .hide-preterito .preterito,
+  .hide-preterito-anterior .preterito-anterior, .hide-subjuntivo .subjuntivo {
+    display: none;
+  }
+</style>
+
     <script>
 
 var g_quiz = {};
@@ -111,6 +122,10 @@ function deaccent(str) {
         .trim();
 }
 
+function safeIdentifier(str) {
+  return deaccent(str).toLowerCase().replace(/[^a-zA-Z]+/g, '-');
+}
+
 function check_answer(elem, answer) {
     if (elem.val() == "") return;
     var correct = deaccent(elem.val()) == deaccent(answer);
@@ -176,11 +191,12 @@ function query_add_box_line(list, title, data) {
 }
 
 function query_add_box(boxes, rec) {
-    var container = $('<div class="container col-sm-6 col-md-4 col-lg-3"></div>').appendTo(boxes);
+    var classes = safeIdentifier(rec['mood']) + ' ' + safeIdentifier(rec['tense']);
+    var container = $('<div class="container col-sm-6 col-md-4 col-lg-3 ' + classes + '"></div>').appendTo(boxes);
     var box = $('<div class="panel panel-default"></div>').appendTo(container);
     var head = $('<div class="panel-heading">' +
-            '<span class="label label-default">' + rec['mood'] + '</span> ' +
-            '<span class="label label-default">' + rec['tense'] + '</span>' +
+            '<span class="label label-default mood">' + rec['mood'] + '</span> ' +
+            '<span class="label label-default tense">' + rec['tense'] + '</span>' +
             '</div>').appendTo(box);
 
     var body = $('<div class="panel-body"></div>').appendTo(box);
@@ -207,7 +223,6 @@ function query_load(data, inapp_query) {
         if (!inapp_query) {
             gen_div.html('<p>Not Found</p>');
         }
-
         return;
     }
 
@@ -217,12 +232,14 @@ function query_load(data, inapp_query) {
     query_add_box_line(list, 'Past Participle',                  data['past']);
 }
 
-$("#query_form").on('submit', function() {
+$("#query_form").on('submit', function(e) {
     location.hash = '#query=' + encodeURIComponent(deaccent($('#txt_query').val()));
+    e.preventDefault();
 })
 
-$("#translate_form").on('submit', function() {
+$("#translate_form").on('submit', function(e) {
     location.hash = '#translate=' + encodeURIComponent($('#txt_translate').val());
+    e.preventDefault();
 })
 
 
@@ -238,8 +255,51 @@ function getObjectFromHash(hash) {
     }, {})
 }
 
+var options = {
+  condicional: true,
+  "condicional-perfecto": true,
+  futuro: true,
+  "futuro-perfecto": true,
+  "imperativo-afirmativo": true,
+  "imperativo-negativo": true,
+  imperfecto: true,
+  indicativo: true,
+  pluscuamperfecto: true,
+  presente: true,
+  "presente-perfecto": true,
+  preterito: true,
+  "preterito-anterior": true,
+  subjuntivo: true
+};
+
+
+function updateQueryDisplayed() {
+  setTimeout(function() {
+    var $tab = $('#tab_query');
+    Object.keys(options).forEach(function(key) {
+      $tab.toggleClass('hide-' + key, !options[key])
+      $tab.find('[name=' + key + ']').prop('checked', options[key])
+    })
+  }, 0)
+}
+
+function changeSetting(event) {
+  var $t = $(event.target);
+  var $input = $t.is(':checkbox') ? $t : $t.find(':checkbox');
+  if ($input.length !== 1) return false;
+  event.stopPropagation();
+  var name = $input.attr('name')
+  options[name] = !options[name];
+  updateQueryDisplayed();
+  return false;
+}
+
+$('body').on('change', '.settings input', changeSetting);
+$('body').on('click', '.settings', changeSetting);
+
 
 window.onhashchange = routeAction;
+updateQueryDisplayed();
 routeAction();
 
 })  // end of $(function(){})
@@ -285,6 +345,30 @@ routeAction();
             <div class="panel-heading">
                 <form class="" id="query_form">
                     <div class="input-group">
+                        <div class="input-group-btn">
+                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                          Settings <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu settings">
+                          <li class="dropdown-header">Moods</li>
+                          <li><label><input type="checkbox" name="indicativo"/>&nbsp;Indicativo</a></label></li>
+                          <li><label><input type="checkbox" name="subjuntivo"/>&nbsp;Subjuntivo</a></label></li>
+                          <li><label><input type="checkbox" name="imperativo-afirmativo"/>&nbsp;Imperativo Afirmativo</a></label></li>
+                          <li><label><input type="checkbox" name="imperativo-negativo"/>&nbsp;Imperativo Negativo</a></label></li>
+                          <li role="separator" class="divider"></li>
+                          <li class="dropdown-header">Tenses</li>
+                          <li><label><input type="checkbox" name="presente"/>&nbsp;Presente</a></label></li>
+                          <li><label><input type="checkbox" name="futuro"/>&nbsp;Futuro</a></label></li>
+                          <li><label><input type="checkbox" name="imperfecto"/>&nbsp;Imperfecto</a></label></li>
+                          <li><label><input type="checkbox" name="preterito"/>&nbsp;Pretérito</a></label></li>
+                          <li><label><input type="checkbox" name="condicional"/>&nbsp;Condicional</a></label></li>
+                          <li><label><input type="checkbox" name="presente-perfecto"/>&nbsp;Presente perfecto</a></label></li>
+                          <li><label><input type="checkbox" name="futuro-perfecto"/>&nbsp;Futuro perfecto</a></label></li>
+                          <li><label><input type="checkbox" name="pluscuamperfecto"/>&nbsp;Pluscuamperfecto</a></label></li>
+                          <li><label><input type="checkbox" name="preterito-anterior"/>&nbsp;Pretérito anterior</a></label></li>
+                          <li><label><input type="checkbox" name="condicional-perfecto"/>&nbsp;Condicional perfecto</a></label></li>
+                        </ul>
+                        </div>
                         <input type="text" class="form-control" id="txt_query" placeholder="Verb Conjugation...">
                         <span class="input-group-btn">
                             <button class="btn btn-success" type="submit">
