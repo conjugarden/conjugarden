@@ -90,12 +90,12 @@ $(function() {
           g_quiz = quizes[Math.floor(Math.random() * quizes.length)];
           $('#lab_mood').text(g_quiz["mood"]);
           $('#lab_tense').text(g_quiz["tense"]);
-          $('#txt_1s').attr('readonly', g_quiz["1s"] == "");
-          $('#txt_2s').attr('readonly', g_quiz["2s"] == "");
-          $('#txt_3s').attr('readonly', g_quiz["3s"] == "");
-          $('#txt_1p').attr('readonly', g_quiz["1p"] == "");
-          $('#txt_2p').attr('readonly', g_quiz["2p"] == "");
-          $('#txt_3p').attr('readonly', g_quiz["3p"] == "");
+          $('#txt_1s').attr('readonly', g_quiz["form_1s"] == "");
+          $('#txt_2s').attr('readonly', g_quiz["form_2s"] == "");
+          $('#txt_3s').attr('readonly', g_quiz["form_3s"] == "");
+          $('#txt_1p').attr('readonly', g_quiz["form_1p"] == "");
+          $('#txt_2p').attr('readonly', g_quiz["form_2p"] == "");
+          $('#txt_3p').attr('readonly', g_quiz["form_3p"] == "");
       });
   }
 
@@ -145,21 +145,21 @@ $("#btn_clear").click(function() {
 
 $("#btn_check").click(function() {
     clear_mark();
-    check_answer($('#txt_1s'), g_quiz['1s']);
-    check_answer($('#txt_2s'), g_quiz['2s']);
-    check_answer($('#txt_3s'), g_quiz['3s']);
-    check_answer($('#txt_1p'), g_quiz['1p']);
-    check_answer($('#txt_2p'), g_quiz['2p']);
-    check_answer($('#txt_3p'), g_quiz['3p']);
+    check_answer($('#txt_1s'), g_quiz['form_1s']);
+    check_answer($('#txt_2s'), g_quiz['form_2s']);
+    check_answer($('#txt_3s'), g_quiz['form_3s']);
+    check_answer($('#txt_1p'), g_quiz['form_1p']);
+    check_answer($('#txt_2p'), g_quiz['form_2p']);
+    check_answer($('#txt_3p'), g_quiz['form_3p']);
 })
 
 $("#btn_show").click(function() {
-    $('#txt_1s').val(g_quiz['1s']);
-    $('#txt_2s').val(g_quiz['2s']);
-    $('#txt_3s').val(g_quiz['3s']);
-    $('#txt_1p').val(g_quiz['1p']);
-    $('#txt_2p').val(g_quiz['2p']);
-    $('#txt_3p').val(g_quiz['3p']);
+    $('#txt_1s').val(g_quiz['form_1s']);
+    $('#txt_2s').val(g_quiz['form_2s']);
+    $('#txt_3s').val(g_quiz['form_3s']);
+    $('#txt_1p').val(g_quiz['form_1p']);
+    $('#txt_2p').val(g_quiz['form_2p']);
+    $('#txt_3p').val(g_quiz['form_3p']);
 })
 
 $("#btn_next").click(function() {
@@ -185,12 +185,12 @@ function query_add_box(boxes, rec) {
 
     var body = $('<div class="panel-body"></div>').appendTo(box);
     var list = $('<ul class="list-group"></ul>').appendTo(body);
-    query_add_box_line(list, 'yo',   rec['1s']);
-    query_add_box_line(list, 'tú',   rec['2s']);
-    query_add_box_line(list, 'Ud.',  rec['3s']);
-    query_add_box_line(list, 'nos.', rec['1p']);
-    query_add_box_line(list, 'vos.', rec['2p']);
-    query_add_box_line(list, 'Uds.', rec['3p']);
+    query_add_box_line(list, 'yo',   rec['form_1s']);
+    query_add_box_line(list, 'tú',   rec['form_2s']);
+    query_add_box_line(list, 'Ud.',  rec['form_3s']);
+    query_add_box_line(list, 'nos.', rec['form_1p']);
+    query_add_box_line(list, 'vos.', rec['form_2p']);
+    query_add_box_line(list, 'Uds.', rec['form_3p']);
 }
 
 function query_load(data, inapp_query) {
