@@ -92,12 +92,24 @@ $(function() {
   }
 
   function exercise_load() {
+      var ignore = {mood: [], tense: []};
+      Object.keys(options.exercise).forEach(function(key) {
+          if (!options.exercise[key] && options.exercise[key] != undefined) {
+            var parts = key.split(':');
+            ignore[parts[0]].push(parts[1]);
+          }
+      })
       $.get("?action=quiz", function(data) {
           g_data = data;
           $('#lab_word').text(data["word"]);
           $('#lab_meaning').text(data["meaning"]);
 
-          quizes = data["conj"];
+          var quizes = data["conj"].filter(function(conj) {
+            if (ignore.mood.indexOf(conj.mood) !== -1) return false;
+            if (ignore.tense.indexOf(conj.tense) !== -1) return false;
+            return true
+          });
+
           g_quiz = quizes[Math.floor(Math.random() * quizes.length)];
           $('#lab_mood').text(g_quiz["mood"]);
           $('#lab_tense').text(g_quiz["tense"]);
@@ -255,51 +267,82 @@ function getObjectFromHash(hash) {
     }, {})
 }
 
-var options = {
-  condicional: true,
-  "condicional-perfecto": true,
-  futuro: true,
-  "futuro-perfecto": true,
-  "imperativo-afirmativo": true,
-  "imperativo-negativo": true,
-  imperfecto: true,
-  indicativo: true,
-  pluscuamperfecto: true,
-  presente: true,
-  "presente-perfecto": true,
-  preterito: true,
-  "preterito-anterior": true,
-  subjuntivo: true
+var options;
+try {
+  options = JSON.parse(localStorage.getItem('settings'));
+} catch (e) {}
+
+options = options || { // defaults
+  query: {
+    condicional: true,
+    "condicional-perfecto": true,
+    futuro: true,
+    "futuro-perfecto": true,
+    "imperativo-afirmativo": true,
+    "imperativo-negativo": true,
+    imperfecto: true,
+    indicativo: true,
+    pluscuamperfecto: true,
+    presente: true,
+    "presente-perfecto": true,
+    preterito: true,
+    "preterito-anterior": true,
+    subjuntivo: true
+  },
+
+  exercise: {
+    'tense:Presente': true,
+    'tense:Futuro': true,
+    'tense:Imperfecto': true,
+    'tense:Pretérito': true,
+    'tense:Condicional': true,
+    'tense:Presente perfecto': true,
+    'tense:Futuro perfecto': true,
+    'tense:Pluscuamperfecto': true,
+    'tense:Pretérito anterior': true,
+    'tense:Condicional perfecto': true,
+    'mood:Indicativo': true,
+    'mood:Subjuntivo': true,
+    'mood:Imperativo Afirmativo': true,
+    'mood:Imperativo Negativo': true,
+  }
 };
 
-
-function updateQueryDisplayed() {
+function updateSettingsFor(type) {
   setTimeout(function() {
-    var $tab = $('#tab_query');
-    Object.keys(options).forEach(function(key) {
-      $tab.toggleClass('hide-' + key, !options[key])
-      $tab.find('[name=' + key + ']').prop('checked', options[key])
+    var $tab = $('#tab_' + type);
+    Object.keys(options[type]).forEach(function(key) {
+      $tab.toggleClass('hide-' + key, !options[type][key])
+      $tab.find('[name="' + key + '"]').prop('checked', options[type][key])
     })
   }, 0)
 }
 
-function changeSetting(event) {
-  var $t = $(event.target);
-  var $input = $t.is(':checkbox') ? $t : $t.find(':checkbox');
-  if ($input.length !== 1) return false;
-  event.stopPropagation();
-  var name = $input.attr('name')
-  options[name] = !options[name];
-  updateQueryDisplayed();
-  return false;
+function changeSettingFor(type) {
+  return function (event) {
+    var $t = $(event.target);
+    var $input = $t.is(':checkbox') ? $t : $t.find(':checkbox');
+    if ($input.length !== 1) return false;
+    event.stopPropagation();
+    var name = $input.attr('name')
+    options[type][name] = !options[type][name];
+    updateSettingsFor(type);
+    localStorage.setItem('settings', JSON.stringify(options));
+    return false;
+  };
 }
 
-$('body').on('change', '.settings input', changeSetting);
-$('body').on('click', '.settings', changeSetting);
+$('body').on('change', '.settings input', changeSettingFor('query'));
+$('body').on('click', '.settings', changeSettingFor('query'));
 
+$('body').on('change', '.exercise-settings input', changeSettingFor('exercise'));
+$('body').on('click', '.exercise-settings', changeSettingFor('exercise'));
 
 window.onhashchange = routeAction;
-updateQueryDisplayed();
+
+updateSettingsFor('query');
+updateSettingsFor('exercise');
+
 routeAction();
 
 })  // end of $(function(){})
@@ -414,7 +457,7 @@ routeAction();
             <span id="lab_word">amar</span>
             <span id="lab_mood" class="label label-default">Indicative</span>
             <span id="lab_tense" class="label label-default">Present</span>
-		</div>
+        </div>
         <div class="panel-body">
             <span id="lab_meaning">I love, am loving</span>
         </div>
@@ -464,10 +507,35 @@ routeAction();
 
                 <div class="form-group">
                     <div class="col-sm-offset-2 col-sm-10">
-                        <button type="button" id="btn_check" class="btn btn-default btn-success">Check</button>
-                        <button type="button" id="btn_show" class="btn btn-default">Show</button>
-                        <button type="button" id="btn_clear" class="btn btn-default">Clear</button>
-                        <button type="button" id="btn_next" class="btn btn-default btn-primary">Next</button>
+
+                        <div class="btn-group dropup">
+                          <button type="button" id="btn_check" class="btn btn-default btn-success">Check</button>
+                          <button type="button" id="btn_show" class="btn btn-default">Show</button>
+                          <button type="button" id="btn_clear" class="btn btn-default">Clear</button>
+                          <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Settings <span class="caret"></span>
+                          </button>
+                          <ul class="dropdown-menu exercise-settings">
+                            <li class="dropdown-header">Moods</li>
+                            <li><label><input type="checkbox" name="mood:Indicativo"/>&nbsp;Indicativo</a></label></li>
+                            <li><label><input type="checkbox" name="mood:Subjuntivo"/>&nbsp;Subjuntivo</a></label></li>
+                            <li><label><input type="checkbox" name="mood:Imperativo Afirmativo"/>&nbsp;Imperativo Afirmativo</a></label></li>
+                            <li><label><input type="checkbox" name="mood:Imperativo Negativo"/>&nbsp;Imperativo Negativo</a></label></li>
+                            <li role="separator" class="divider"></li>
+                            <li class="dropdown-header">Tenses</li>
+                            <li><label><input type="checkbox" name="tense:Presente"/>&nbsp;Presente</a></label></li>
+                            <li><label><input type="checkbox" name="tense:Futuro"/>&nbsp;Futuro</a></label></li>
+                            <li><label><input type="checkbox" name="tense:Imperfecto"/>&nbsp;Imperfecto</a></label></li>
+                            <li><label><input type="checkbox" name="tense:Pretérito"/>&nbsp;Pretérito</a></label></li>
+                            <li><label><input type="checkbox" name="tense:Condicional"/>&nbsp;Condicional</a></label></li>
+                            <li><label><input type="checkbox" name="tense:Presente perfecto"/>&nbsp;Presente perfecto</a></label></li>
+                            <li><label><input type="checkbox" name="tense:Futuro perfecto"/>&nbsp;Futuro perfecto</a></label></li>
+                            <li><label><input type="checkbox" name="tense:Pluscuamperfecto"/>&nbsp;Pluscuamperfecto</a></label></li>
+                            <li><label><input type="checkbox" name="tense:Pretérito anterior"/>&nbsp;Pretérito anterior</a></label></li>
+                            <li><label><input type="checkbox" name="tense:Condicional perfecto"/>&nbsp;Condicional perfecto</a></label></li>
+                          </ul>
+                          <button type="button" id="btn_next" class="btn btn-default btn-primary">Next</button>
+                        </div>
                     </div>
                 </div>
 
