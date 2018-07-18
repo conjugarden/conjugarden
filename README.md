@@ -42,12 +42,6 @@ node site/initialize_database.js
 
 Build the dictionary:
 
-```bash
-cd data && ./process.py
-```
-
-The build script writes the processed dictionary to `site/data.json`
-
 Start the server:
 
 ```bash
