@@ -47,7 +47,7 @@ function translate_text(text, resp) {
 }
 
 
-function query_route(query, resp) {
+function query_route(query, resp, is_retry) {
 	var result = {};
 
 	database.fuzzy_find_word(query.word, function(err, word) {
@@ -56,14 +56,29 @@ function query_route(query, resp) {
 			return write_response(500, result, resp);
 		}
 
-		if (!word) {
-			// TODO: call import script here and try again
-			return write_response(200, result, resp);
-		}
+		if (word) {
+			database.fetch_all(word, function(result) {
+				return write_response(200, result, resp);
+			})
 
-		database.fetch_all(word, function(result) {
-			return write_response(200, result, resp);
-		})
+		} else {
+			if (is_retry) {
+				return write_response(200, result, resp);
+			}
+
+			var prc = child_process.spawn(config.import_verb_command, [query.word]);
+			prc.stdout.setEncoding('utf8');
+			prc.on('error', function(error) {
+				console.log(error)
+			})
+			prc.on('close', function (code) {
+				if (code === 0) { // zero exit code, retry word lookup
+					query_route(query, resp, true)
+				} else { // not found
+					write_response(200, result, resp);
+				}
+			});
+		}
 	})
 }
 
