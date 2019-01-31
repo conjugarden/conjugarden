@@ -122,4 +122,4 @@ var server = http.createServer(function(req, resp) {
 		fs.createReadStream(__dirname + '/assets/index.html').pipe(resp);
 	}
 });
-server.listen(config.port);
+server.listen(config.port, 'localhost');
