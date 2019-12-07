@@ -84,7 +84,7 @@ function query_route(query, resp, is_retry) {
 
 
 function quiz_route(query, resp) {
-	database.query('select * from infinitive order by rand() limit 1', function(err, res) {
+	database.query('select * from infinitive order by random() limit 1', function(err, res) {
 		if (err) {
 			status = 500;
 			return write_response(500, {error: err.message}, resp);

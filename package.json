@@ -9,6 +9,6 @@
   "author": "",
   "license": "AGPL-3.0",
   "dependencies": {
-    "mysql": "^2.15.0"
+    "sqlite3": "^4.1.1"
   }
 }
